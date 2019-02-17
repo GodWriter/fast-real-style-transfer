@@ -3,6 +3,7 @@ import time
 import tensorflow as tf
 
 from dataloader import DataSet
+from dataprocess import BatchDataProcess
 from model import StyleGenerator
 from vgg19.vgg import Vgg19
 from loss import Loss
@@ -15,6 +16,7 @@ class Solver(object):
 
     def train(self):
         utils = Utils(self.args)
+        data_preprocess = BatchDataProcess(self.args)
 
         # create the dataSet
         dataset = DataSet(self.args)
@@ -98,8 +100,9 @@ class Solver(object):
                                                               next_element['values'],
                                                               next_element['dense_shape'],
                                                               next_element['image']])
-
-                    # Then run the train_op
+                    # Then preprocess the data
+                    image = sess.run(data_preprocess.preprocess_image(image))
+                    # Finally run the train_op
                     sess.run(fetches=[train_op], feed_dict={input_image: image,
                                                             matting_indices: indices,
                                                             matting_values: values,
@@ -136,9 +139,11 @@ class Solver(object):
     def test(self):
         style_model = StyleGenerator(self.args)
         utils = Utils(self.args)
+        data_preprocess = BatchDataProcess(self.args)
 
         image = utils.read_image(self.args.test_image)
         image = tf.expand_dims(image, 0)
+        image = data_preprocess.preprocess_image(image)
 
         generated = style_model.model(image, training=self.args.training)
         generated = tf.squeeze(generated, [0])

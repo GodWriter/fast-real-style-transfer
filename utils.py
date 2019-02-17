@@ -3,6 +3,7 @@ import numpy as np
 
 from PIL import Image
 from vgg19.vgg import Vgg19
+from dataprocess import BatchDataProcess
 
 
 class Utils(object):
@@ -14,8 +15,11 @@ class Utils(object):
         return np.array(Image.open(image_path).convert('RGB'), dtype=np.float32)
 
     def get_sytleImg_features(self, image_path):
+        data_process = BatchDataProcess(self.args)
+
         image = self.read_image(image_path)
         image = tf.expand_dims(image, 0)
+        image = data_process.preprocess_image(image)
 
         vgg_style = Vgg19(self.args.vgg_path)
         vgg_style.build(image, clear_data=False)

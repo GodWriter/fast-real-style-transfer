@@ -35,7 +35,7 @@ def parse_args():
                         help='Weight of style loss when computing the total loss')
     parser.add_argument('--tv_weight', type=float, default=1,
                         help='Weight of total variation loss when computing the total loss')
-    parser.add_argument('--affine_weight', type=float, default=10,
+    parser.add_argument('--affine_weight', type=float, default=1,
                         help='Weight of affine loss when computing the total loss')
     parser.add_argument('--batch_size', type=int, default=4,
                         help='Batch size of the data')

@@ -12,8 +12,8 @@ class Loss(object):
         image_width, image_height = shape[1], shape[2]
 
         channel_vectors = tf.reshape(layer, tf.stack([image_num, -1, image_channels]))
-        image_grams = tf.matmul(channel_vectors, channel_vectors, transpose_a=True) / \
-                      tf.to_float(image_width * image_height * image_channels)
+        image_grams = tf.matmul(channel_vectors, channel_vectors, transpose_a=True) \
+                      / tf.to_float(image_width * image_height * image_channels)
 
         return image_grams
 

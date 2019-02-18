@@ -13,19 +13,19 @@ class BatchDataProcess(object):
 
     def _mean_image_subtraction(self, image):
         # define the initial means, whose shape is [3]
-        means = tf.constant([self._R_MEAN, self._G_MEAN, self._B_MEAN], dtype=tf.float32)
+        means = tf.constant([self._B_MEAN, self._G_MEAN, self._R_MEAN], dtype=tf.float32)
         # change the dims of means to [1, 1, ,1, 3]
         means_ = tf.expand_dims(tf.expand_dims(tf.expand_dims(means, 0), 0), 0)
 
-        return image - means_
+        return image[:, :, :, ::-1] - means_
 
     def _mean_image_subtraction_without_sess(self, image):
         # define the initial means, whose shape is [3]
-        means = np.array([self._R_MEAN, self._G_MEAN, self._B_MEAN], dtype=np.float32)
+        means = np.array([self._B_MEAN, self._G_MEAN, self._R_MEAN], dtype=np.float32)
         # change the dims of means to [1, 1, ,1, 3]
         means_ = np.expand_dims(np.expand_dims(np.expand_dims(means, 0), 0), 0)
 
-        return image - means_
+        return image[:, :, :, ::-1] - means_
 
     def preprocess_image(self, image):
         return self._mean_image_subtraction(image)

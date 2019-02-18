@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 
 class BatchDataProcess(object):
@@ -18,8 +19,19 @@ class BatchDataProcess(object):
 
         return image - means_
 
+    def _mean_image_subtraction_without_sess(self, image):
+        # define the initial means, whose shape is [3]
+        means = np.array([self._R_MEAN, self._G_MEAN, self._B_MEAN], dtype=np.float32)
+        # change the dims of means to [1, 1, ,1, 3]
+        means_ = np.expand_dims(np.expand_dims(np.expand_dims(means, 0), 0), 0)
+
+        return image - means_
+
     def preprocess_image(self, image):
         return self._mean_image_subtraction(image)
+
+    def preprocess_image_without_sess(self, image):
+        return self._mean_image_subtraction_without_sess(image)
 
 
 class SingleDataProcess(object):

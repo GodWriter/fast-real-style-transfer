@@ -101,7 +101,7 @@ class Solver(object):
                                                               next_element['dense_shape'],
                                                               next_element['image']])
                     # Then preprocess the data
-                    image = sess.run(data_preprocess.preprocess_image(image))
+                    image = data_preprocess.preprocess_image_without_sess(image)
                     # Finally run the train_op
                     sess.run(fetches=[train_op], feed_dict={input_image: image,
                                                             matting_indices: indices,
@@ -125,8 +125,7 @@ class Solver(object):
                     # save the model
                     if step % self.args.save_epoch == 0:
                         saver.save(sess,
-                                   os.path.join(self.args.model_path, 'fast-real-model.ckpt'),
-                                   global_step=step)
+                                   os.path.join(self.args.model_path, 'fast-real-model-%s.ckpt' % step))
                 except tf.errors.OutOfRangeError:
                     print("End of training!")
                     saver.save(sess,

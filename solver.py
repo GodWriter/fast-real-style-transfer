@@ -9,6 +9,9 @@ from vgg19.vgg import Vgg19
 from loss import Loss
 from utils import Utils
 
+import numpy as np
+from PIL import Image
+
 
 class Solver(object):
     def __init__(self, args):
@@ -141,9 +144,41 @@ class Solver(object):
         data_preprocess = BatchDataProcess(self.args)
 
         image = utils.read_image(self.args.test_image)
+        image = np.expand_dims(image, 0)
+        image = data_preprocess.preprocess_image_without_sess(image)
+
+        generated = style_model.model(image, training=self.args.training)
+        generated = tf.squeeze(generated, [0])
+
+        saver = tf.train.Saver(tf.global_variables(),
+                               write_version=tf.train.SaverDef.V1)
+        init = tf.global_variables_initializer()
+
+        with tf.Session() as sess:
+            sess.run(init)
+            saver.restore(sess, self.args.model_file)
+
+            generated_path = 'generated/res.jpg'
+            if os.path.exists('generated') is False:
+                os.makedirs('generated')
+
+            start_time = time.time()
+            image = sess.run(generated)
+            img = Image.fromarray(np.uint8(np.clip(image[:, :, ::-1], 0, 255.0)))
+            img.save(generated_path)
+            end_time = time.time()
+            print('Elapsed time: %fs' % (end_time - start_time))
+
+    def test_old(self):
+        style_model = StyleGenerator(self.args)
+        utils = Utils(self.args)
+        data_preprocess = BatchDataProcess(self.args)
+
+        image = utils.read_image(self.args.test_image)
         image = tf.expand_dims(image, 0)
         image = data_preprocess.preprocess_image(image)
 
+        # generated = tf.squeeze(image, [0])
         generated = style_model.model(image, training=self.args.training)
         generated = tf.squeeze(generated, [0])
         generated = tf.image.convert_image_dtype(generated, dtype=tf.uint8)

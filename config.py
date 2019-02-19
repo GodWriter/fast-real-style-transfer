@@ -31,7 +31,7 @@ def parse_args():
                         help='The width of the unprocessed image after processed')
     parser.add_argument('--content_weight', type=float, default=1,
                         help='Weight of content loss when computing the total loss')
-    parser.add_argument('--style_weight', type=float, default=100,
+    parser.add_argument('--style_weight', type=float, default=1,
                         help='Weight of style loss when computing the total loss')
     parser.add_argument('--tv_weight', type=float, default=1,
                         help='Weight of total variation loss when computing the total loss')
@@ -47,7 +47,7 @@ def parse_args():
                         help='Path to save the log')
     parser.add_argument('--model_path', type=str, default='model',
                         help='Path to save the model')
-    parser.add_argument('--save_epoch', type=int, default=500,
+    parser.add_argument('--save_epoch', type=int, default=1000,
                         help='The frequency to save the model')
     parser.add_argument('--save_summary', type=int, default=10,
                         help='The frequency to save the summary')

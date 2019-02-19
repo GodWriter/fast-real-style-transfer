@@ -22,3 +22,5 @@ if __name__ == '__main__':
         solver.train()
     elif module == 'test':
         solver.test()
+    elif module == 'train_without_affine':
+        solver.train_without_affine()

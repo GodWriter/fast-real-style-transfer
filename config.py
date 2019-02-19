@@ -10,7 +10,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description=desc)
 
     parser.add_argument('--module', type=str, default='test',
-                        help='Module to select: train, test, test_dataset, create_dataset')
+                        help='Module to select: train, test, test_dataset, create_dataset, train_without_affine')
     parser.add_argument('--training', type=bool, default=True,
                         help='If the model is train, this argument should be true, else False')
     parser.add_argument('--GPU', type=str, default='0',

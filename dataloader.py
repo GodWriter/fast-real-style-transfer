@@ -78,8 +78,8 @@ class DataSet(object):
 
         dataset = tf.data.TFRecordDataset(data_list)
         new_dataset = dataset.map(self.parse_function)
-        shuffle_dataset = new_dataset.shuffle(buffer_size=len(data_list))
-        batch_dataset = shuffle_dataset.batch(self.args.batch_size)
+        # shuffle_dataset = new_dataset.shuffle(buffer_size=len(data_list))
+        batch_dataset = new_dataset.batch(self.args.batch_size)
         epoch_dataset = batch_dataset.repeat(self.args.num_epochs)
 
         iterator = epoch_dataset.make_one_shot_iterator()

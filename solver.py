@@ -132,7 +132,7 @@ class Solver(object):
                 except tf.errors.OutOfRangeError:
                     print("End of training!")
                     saver.save(sess,
-                               os.path.join(self.args.model_path, 'fast-real-model.ckpt-done'))
+                               os.path.join(self.args.model_path, 'fast-real-model-done.ckpt'))
                     break
                 else:
                     pass
@@ -273,11 +273,11 @@ class Solver(object):
                     # save the model
                     if step % self.args.save_epoch == 0:
                         saver.save(sess,
-                                   os.path.join(self.args.model_path, 'fast-real-model-%s.ckpt' % step))
+                                   os.path.join(self.args.model_path, 'fast-neural-model-%s.ckpt' % step))
                 except tf.errors.OutOfRangeError:
                     print("End of training!")
                     saver.save(sess,
-                               os.path.join(self.args.model_path, 'fast-real-model.ckpt-done'))
+                               os.path.join(self.args.model_path, 'fast-neural-model-done.ckpt'))
                     break
                 else:
                     pass

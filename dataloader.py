@@ -1,15 +1,26 @@
 import os
+import sys
 import pickle
 import numpy as np
 import tensorflow as tf
 
+import time
+import math
+import copy
+
 from PIL import Image
+from utils import getLaplacian
 
 
 class DataSet(object):
     def __init__(self,
                  args):
         self.args = args
+
+        self.VGG_MEAN = [103.939, 116.779, 123.68]
+        self.affine_weight = 1e4
+
+        self.image_list = os.listdir(self.args.image_path)
 
     def create_dataset(self):
         # get path of image and matrix
@@ -111,3 +122,44 @@ class DataSet(object):
                 print('image shape: %s | type: %s' % (image.shape, image.dtype))
                 print("=" * 50)
             i += 1
+
+    def _add_to_tfrecord(self, filename, tfrecord_writer):
+        content_image = np.array(Image.open(os.path.join(self.args.image_path, filename)).convert("RGB"),
+                                 dtype=np.float32)
+
+        # Get matting matrix
+        matting = tf.to_float(getLaplacian(content_image / 255.))
+        with tf.Session() as sess:
+            mat = sess.run(matting)
+
+        example = tf.train.Example(features=tf.train.Features(feature={
+            'indices': tf.train.Feature(int64_list=tf.train.Int64List(value=mat[0].reshape(-1))),
+            'indices-shape': tf.train.Feature(int64_list=tf.train.Int64List(value=mat[0].shape)),
+            'values': tf.train.Feature(float_list=tf.train.FloatList(value=mat[1])),
+            'dense_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=mat[2])),
+            'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[content_image.tostring()])),
+            'image_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=content_image.shape))
+        }))
+
+        tfrecord_writer.write(example.SerializeToString())
+
+    def create_dataset_new(self):
+        file_created = 0 # count the tf-record has been created
+        file_saved = 0 # count the file has been saved
+
+        while file_created < self.args.tfrecord_num:
+            tf_filename = '%s/train_%03d.tfrecord' % (self.args.dataSet,
+                                                      file_saved)
+            with tf.python_io.TFRecordWriter(tf_filename) as tfrecord_writer:
+                file_created_per_record = 0
+                while file_created < self.args.tfrecord_num and file_created_per_record < self.args.samples_per_file:
+                    sys.stdout.write('\r>> Converting image %d/%d' % (file_created+1, self.TFRECORD_NUM))
+                    sys.stdout.flush()
+                    filename = self.image_list[file_created]
+                    # img_name = filename[:-4]
+                    self._add_to_tfrecord(filename, tfrecord_writer)
+                    file_created += 1
+                    file_created_per_record += 1
+                file_saved += 1
+
+        print('\nFinished converting to the tfrecord.')

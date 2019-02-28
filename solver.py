@@ -26,7 +26,7 @@ class Solver(object):
         next_element = dataset.load()
 
         # create the input for the image
-        input_image = tf.placeholder(dtype=tf.float32, shape=[self.args.batch_size, 224, 224, 3])
+        processed_image = tf.placeholder(dtype=tf.float32, shape=[self.args.batch_size, 224, 224, 3])
 
         # create the input for the matting matrix
         matting_indices = tf.placeholder(dtype=tf.int64, shape=[self.args.batch_size, 1240996, 2])
@@ -35,14 +35,14 @@ class Solver(object):
 
         # create the generate model
         style_net = StyleGenerator(self.args)
-        generate_image = style_net.model(input_image, training=self.args.training)
+        generate_image = style_net.model(processed_image, training=self.args.training)
 
         # create the Vgg19
         vgg_source = Vgg19(self.args.vgg_path)
         vgg_generate = Vgg19(self.args.vgg_path)
 
         # There has a problem whether the image is rgb or bgr
-        vgg_source.build(input_image, clear_data=False)
+        vgg_source.build(processed_image, clear_data=False)
         vgg_generate.build(generate_image, clear_data=False)
 
         # Get the features for computing the content loss
@@ -99,14 +99,13 @@ class Solver(object):
             while True:
                 try:
                     # First get the data
-                    indices, values, shape, image = sess.run([next_element['indices'],
-                                                              next_element['values'],
-                                                              next_element['dense_shape'],
-                                                              next_element['image']])
+                    image = sess.run(next_element['image'])
+                    # Get matting matrix
+                    indices, values, shape = utils.compute_matting_matrix(image)
                     # Then preprocess the data
                     image = data_preprocess.preprocess_image_without_sess(image)
                     # Finally run the train_op
-                    sess.run(fetches=[train_op], feed_dict={input_image: image,
+                    sess.run(fetches=[train_op], feed_dict={processed_image: image,
                                                             matting_indices: indices,
                                                             matting_values: values,
                                                             matting_shape: shape})
@@ -116,7 +115,7 @@ class Solver(object):
                         _summary, _loss_content, _loss_style, _loss_tv, _loss_affine = sess.run([summary, loss_content,
                                                                                                  loss_style, loss_tv,
                                                                                                  loss_affine],
-                                                                                                 {input_image: image,
+                                                                                                 {processed_image: image,
                                                                                                   matting_indices: indices,
                                                                                                   matting_values: values,
                                                                                                   matting_shape: shape})

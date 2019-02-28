@@ -60,7 +60,4 @@ class Loss(object):
 
         return loss_affine
 
-    def print_loss(self, loss_content, loss_style, loss_tv, loss_affine):
-        print('loss_content: ', loss_content, 'loss_style: ', loss_style,
-              'loss_tv: ', loss_tv, 'loss_affine: ', loss_affine)
 

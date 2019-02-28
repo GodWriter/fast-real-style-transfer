@@ -51,6 +51,20 @@ class Utils(object):
 
         return matting_matrix_list
 
+    def compute_matting_matrix(self, input_image):
+        # the numpy matting matrix
+        _indices = np.zeros((self.args.batch_size, 1240996, 2))
+        _values = np.zeros((self.args.batch_size, 1, 1240996))
+        _shape = np.zeros((self.args.batch_size, 2))
+
+        for idx in range(self.args.batch_size):
+            mat = getLaplacian(input_image[idx, :, :, :] / 255.)
+            _indices[idx, :, :] = mat[0]
+            _values[idx, :, :] = mat[1]
+            _shape[idx, :] = mat[2]
+
+        return _indices, _values, _shape
+
 
 def getlaplacian1(i_arr, consts, epsilon=1e-5, win_rad=1):
     neb_size = (win_rad * 2 + 1) ** 2
@@ -96,11 +110,13 @@ def getlaplacian1(i_arr, consts, epsilon=1e-5, win_rad=1):
 
     return a_sparse
 
+
 def getLaplacian(img):
     h, w, _ = img.shape
     coo = getlaplacian1(img, np.zeros(shape=(h, w)), 1e-5, 1).tocoo()
     indices = np.mat([coo.row, coo.col]).transpose()
-    return tf.SparseTensor(indices, coo.data, coo.shape)
+    return indices, coo.data, coo.shape
+
 
 
 

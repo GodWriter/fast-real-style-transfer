@@ -78,11 +78,14 @@ class Solver(object):
         writer = tf.summary.FileWriter(self.args.log_path)
 
         # Define the optimizer
+        global_step = tf.Variable(0, name='global_step', trainable=False)
+
         optimizer = tf.train.AdamOptimizer(learning_rate=self.args.learning_rate,
                                            beta1=0.9,
                                            beta2=0.999,
                                            epsilon=1e-08)
         train_op = optimizer.minimize(total_loss_with_affine,
+                                      global_step=global_step,
                                       var_list=tf.trainable_variables(scope='styleGenerator'))
 
         # Save the model
@@ -93,7 +96,6 @@ class Solver(object):
         # initial the global parameters
         init_global = tf.global_variables_initializer()
 
-        step = 0
         with tf.Session() as sess:
             sess.run(init_global)
 
@@ -112,10 +114,10 @@ class Solver(object):
                     # Then preprocess the data
                     image = data_preprocess.preprocess_image_without_sess(image)
                     # Finally run the train_op
-                    sess.run(fetches=[train_op], feed_dict={processed_image: image,
-                                                            matting_indices: indices,
-                                                            matting_values: values,
-                                                            matting_shape: shape})
+                    _, step = sess.run(fetches=[train_op, global_step], feed_dict={processed_image: image,
+                                                                                matting_indices: indices,
+                                                                                matting_values: values,
+                                                                                matting_shape: shape})
 
                     # save and print the summary
                     if step % self.args.save_summary == 0:
@@ -139,11 +141,8 @@ class Solver(object):
                 except tf.errors.OutOfRangeError:
                     print("End of training!")
                     saver.save(sess,
-                               os.path.join(self.args.model_path, 'fast-real-model-done.ckpt'))
+                               os.path.join(self.args.model_path, 'fast-real-model.ckpt-done'))
                     break
-                else:
-                    pass
-                step += 1
 
     def test(self):
         style_model = StyleGenerator(self.args)

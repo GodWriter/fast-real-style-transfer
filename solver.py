@@ -89,7 +89,7 @@ class Solver(object):
                                       var_list=tf.trainable_variables(scope='styleGenerator'))
 
         # Save the model
-        saver = tf.train.Saver(var_list=tf.trainable_variables(scope='styleGenerator'),
+        saver = tf.train.Saver(var_list=tf.trainable_variables(scope='styleGenerator') + [global_step],
                                max_to_keep=10,
                                write_version=tf.train.SaverDef.V1)
 

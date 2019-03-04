@@ -115,9 +115,9 @@ class Solver(object):
                     image = data_preprocess.preprocess_image_without_sess(image)
                     # Finally run the train_op
                     _, step = sess.run(fetches=[train_op, global_step], feed_dict={processed_image: image,
-                                                                                matting_indices: indices,
-                                                                                matting_values: values,
-                                                                                matting_shape: shape})
+                                                                                   matting_indices: indices,
+                                                                                   matting_values: values,
+                                                                                   matting_shape: shape})
 
                     # save and print the summary
                     if step % self.args.save_summary == 0:

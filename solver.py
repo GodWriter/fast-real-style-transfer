@@ -35,7 +35,8 @@ class Solver(object):
 
         # create the generate model
         style_net = StyleGenerator(self.args)
-        generate_image = style_net.model(processed_image, training=self.args.training)
+        generate_image_unprocessed = style_net.model(processed_image, training=self.args.training)
+        generate_image = data_preprocess.preprocess_image(generate_image_unprocessed)
 
         # create the Vgg19
         vgg_source = Vgg19(self.args.vgg_path)

@@ -185,23 +185,19 @@ class Solver(object):
         next_element = dataset.load()
 
         # create the input for the image
-        input_image = tf.placeholder(dtype=tf.float32, shape=[self.args.batch_size, 224, 224, 3])
-
-        # create the input for the matting matrix
-        matting_indices = tf.placeholder(dtype=tf.int64, shape=[self.args.batch_size, 1240996, 2])
-        matting_values = tf.placeholder(dtype=tf.float32, shape=[self.args.batch_size, 1, 1240996])
-        matting_shape = tf.placeholder(dtype=tf.int64, shape=[self.args.batch_size, 2])
+        processed_image = tf.placeholder(dtype=tf.float32, shape=[self.args.batch_size, 224, 224, 3])
 
         # create the generate model
         style_net = StyleGenerator(self.args)
-        generate_image = style_net.model(input_image, training=self.args.training)
+        generate_image_unprocessed = style_net.model(processed_image, training=self.args.training)
+        generate_image = data_preprocess.preprocess_image(generate_image_unprocessed)
 
         # create the Vgg19
         vgg_source = Vgg19(self.args.vgg_path)
         vgg_generate = Vgg19(self.args.vgg_path)
 
         # There has a problem whether the image is rgb or bgr
-        vgg_source.build(input_image, clear_data=False)
+        vgg_source.build(processed_image, clear_data=False)
         vgg_generate.build(generate_image, clear_data=False)
 
         # Get the features for computing the content loss
@@ -231,47 +227,47 @@ class Solver(object):
         writer = tf.summary.FileWriter(self.args.log_path)
 
         # Define the optimizer
+        global_step = tf.Variable(0, name='global_step', trainable=False)
+
         optimizer = tf.train.AdamOptimizer(learning_rate=self.args.learning_rate,
                                            beta1=0.9,
                                            beta2=0.999,
                                            epsilon=1e-08)
         train_op = optimizer.minimize(total_loss_without_affine,
+                                      global_step=global_step,
                                       var_list=tf.trainable_variables(scope='styleGenerator'))
 
         # Save the model
-        saver = tf.train.Saver(var_list=tf.trainable_variables(scope='styleGenerator'),
+        saver = tf.train.Saver(var_list=tf.trainable_variables(scope='styleGenerator') + [global_step],
+                               max_to_keep=10,
                                write_version=tf.train.SaverDef.V1)
 
         # initial the global parameters
         init_global = tf.global_variables_initializer()
 
-        step = 0
         with tf.Session() as sess:
             sess.run(init_global)
+
+            # Load the model, if you want to restart the training
+            if self.args.retraining:
+                last_model = tf.train.latest_checkpoint(self.args.model_path)
+                print("Restoring model from {}".format(last_model))
+                saver.restore(sess, last_model)
 
             while True:
                 try:
                     # First get the data
-                    indices, values, shape, image = sess.run([next_element['indices'],
-                                                              next_element['values'],
-                                                              next_element['dense_shape'],
-                                                              next_element['image']])
+                    image = sess.run(next_element['image'])
                     # Then preprocess the data
                     image = data_preprocess.preprocess_image_without_sess(image)
                     # Finally run the train_op
-                    sess.run(fetches=[train_op], feed_dict={input_image: image,
-                                                            matting_indices: indices,
-                                                            matting_values: values,
-                                                            matting_shape: shape})
+                    _, step = sess.run(fetches=[train_op, global_step], feed_dict={processed_image: image})
 
                     # save and print the summary
                     if step % self.args.save_summary == 0:
                         _summary, _loss_content, _loss_style, _loss_tv = sess.run([summary, loss_content,
-                                                                                   loss_style, loss_tv],
-                                                                                  {input_image: image,
-                                                                                   matting_indices: indices,
-                                                                                   matting_values: values,
-                                                                                   matting_shape: shape})
+                                                                                  loss_style, loss_tv],
+                                                                                  {processed_image: image})
                         writer.add_summary(_summary, step)
                         print('Step: ', step, ' loss_content: ', _loss_content, ' loss_style: ', _loss_style,
                               ' loss_tv: ', _loss_tv)
@@ -280,49 +276,12 @@ class Solver(object):
                     # save the model
                     if step % self.args.save_epoch == 0:
                         saver.save(sess,
-                                   os.path.join(self.args.model_path, 'fast-neural-model-%s.ckpt' % step))
+                                   os.path.join(self.args.model_path, 'fast-neural-model.ckpt'),
+                                   global_step=step)
                 except tf.errors.OutOfRangeError:
                     print("End of training!")
                     saver.save(sess,
-                               os.path.join(self.args.model_path, 'fast-neural-model-done.ckpt'))
+                               os.path.join(self.args.model_path, 'fast-neural-model.ckpt-done'))
                     break
-                else:
-                    pass
-                step += 1
-
-    def test_old(self):
-        style_model = StyleGenerator(self.args)
-        utils = Utils(self.args)
-        data_preprocess = BatchDataProcess(self.args)
-
-        image = utils.read_image(self.args.test_image)
-        image = tf.expand_dims(image, 0)
-        image = data_preprocess.preprocess_image(image)
-
-        # generated = tf.squeeze(image, [0])
-        generated = style_model.model(image, training=self.args.training)
-        generated = tf.squeeze(generated, [0])
-        generated = tf.image.convert_image_dtype(generated, dtype=tf.uint8)
-
-        saver = tf.train.Saver(tf.global_variables(),
-                               write_version=tf.train.SaverDef.V1)
-
-        init = tf.global_variables_initializer()
-
-        with tf.Session() as sess:
-            sess.run(init)
-            saver.restore(sess, self.args.model_file)
-
-            # Make sure 'generated' directory exists.
-            generated_path = 'generated/res.jpg'
-            if os.path.exists('generated') is False:
-                os.makedirs('generated')
-
-            with open(generated_path, 'wb') as img:
-                start_time = time.time()
-                img.write(sess.run(tf.image.encode_jpeg(generated)))
-                end_time = time.time()
-                print('Elapsed time: %fs' % (end_time - start_time))
-
 
 

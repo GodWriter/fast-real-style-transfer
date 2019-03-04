@@ -87,6 +87,7 @@ class Solver(object):
 
         # Save the model
         saver = tf.train.Saver(var_list=tf.trainable_variables(scope='styleGenerator'),
+                               max_to_keep=10,
                                write_version=tf.train.SaverDef.V1)
 
         # initial the global parameters
@@ -95,6 +96,12 @@ class Solver(object):
         step = 0
         with tf.Session() as sess:
             sess.run(init_global)
+
+            # Load the model, if you want to restart the training
+            if self.args.retraining:
+                last_model = tf.train.latest_checkpoint(self.args.model_path)
+                print("Restoring model from {}".format(last_model))
+                saver.restore(sess, last_model)
 
             while True:
                 try:
@@ -127,7 +134,8 @@ class Solver(object):
                     # save the model
                     if step % self.args.save_epoch == 0:
                         saver.save(sess,
-                                   os.path.join(self.args.model_path, 'fast-real-model-%s.ckpt' % step))
+                                   os.path.join(self.args.model_path, 'fast-real-model.ckpt'),
+                                   global_step=step)
                 except tf.errors.OutOfRangeError:
                     print("End of training!")
                     saver.save(sess,
